@@ -86,6 +86,10 @@ export type AppViewState = {
   configForm: Record<string, unknown> | null;
   configFormOriginal: Record<string, unknown> | null;
   configFormMode: "form" | "raw";
+  configSearchQuery: string;
+  configActiveSection: string | null;
+  configActiveSubsection: string | null;
+  configShowAdvanced: boolean;
   channelsLoading: boolean;
   channelsSnapshot: ChannelsStatusSnapshot | null;
   channelsError: string | null;
@@ -143,6 +147,20 @@ export type AppViewState = {
   logsLevelFilters: Record<LogLevel, boolean>;
   logsAutoFollow: boolean;
   logsTruncated: boolean;
+  contextLoading: boolean;
+  contextError: string | null;
+  contextWorkspacePath: string | null;
+  contextCurrentPath: string;
+  contextEntries: Array<{
+    name: string;
+    path: string;
+    size: number;
+    modifiedAt: number;
+    isDirectory: boolean;
+  }>;
+  contextSelectedFile: string | null;
+  contextFileContent: string | null;
+  contextFileLoading: boolean;
   client: GatewayBrowserClient | null;
   connect: () => void;
   setTab: (tab: Tab) => void;

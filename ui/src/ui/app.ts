@@ -175,6 +175,7 @@ export class OpenClawApp extends LitElement {
   @state() configSearchQuery = "";
   @state() configActiveSection: string | null = null;
   @state() configActiveSubsection: string | null = null;
+  @state() configShowAdvanced = false;
 
   @state() channelsLoading = false;
   @state() channelsSnapshot: ChannelsStatusSnapshot | null = null;
@@ -246,6 +247,22 @@ export class OpenClawApp extends LitElement {
   @state() logsLimit = 500;
   @state() logsMaxBytes = 250_000;
   @state() logsAtBottom = true;
+
+  // Context files state
+  @state() contextLoading = false;
+  @state() contextError: string | null = null;
+  @state() contextWorkspacePath: string | null = null;
+  @state() contextCurrentPath = "";
+  @state() contextEntries: Array<{
+    name: string;
+    path: string;
+    size: number;
+    modifiedAt: number;
+    isDirectory: boolean;
+  }> = [];
+  @state() contextSelectedFile: string | null = null;
+  @state() contextFileContent: string | null = null;
+  @state() contextFileLoading = false;
 
   client: GatewayBrowserClient | null = null;
   private chatScrollFrame: number | null = null;

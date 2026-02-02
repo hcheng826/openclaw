@@ -292,6 +292,27 @@ export type ConfigUiHint = {
   itemTemplate?: unknown;
 };
 
+// Context file viewer types
+export type ContextFileEntry = {
+  name: string;
+  path: string;
+  size: number;
+  modifiedAt: number;
+  isDirectory: boolean;
+};
+
+export type ContextFilesListResult = {
+  path: string;
+  entries: ContextFileEntry[];
+};
+
+export type ContextFileReadResult = {
+  path: string;
+  content: string;
+  size: number;
+  modifiedAt: number;
+};
+
 export type ConfigUiHints = Record<string, ConfigUiHint>;
 
 export type ConfigSchemaResponse = {

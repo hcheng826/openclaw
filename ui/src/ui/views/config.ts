@@ -22,12 +22,14 @@ export type ConfigProps = {
   searchQuery: string;
   activeSection: string | null;
   activeSubsection: string | null;
+  showAdvanced: boolean;
   onRawChange: (next: string) => void;
   onFormModeChange: (mode: "form" | "raw") => void;
   onFormPatch: (path: Array<string | number>, value: unknown) => void;
   onSearchChange: (query: string) => void;
   onSectionChange: (section: string | null) => void;
   onSubsectionChange: (section: string | null) => void;
+  onShowAdvancedChange: (show: boolean) => void;
   onReload: () => void;
   onSave: () => void;
   onApply: () => void;
@@ -278,6 +280,23 @@ const SECTIONS: Array<{ key: string; label: string }> = [
   { key: "wizard", label: "Setup Wizard" },
 ];
 
+// Sections that are considered "advanced" - hidden by default
+const ADVANCED_SECTIONS = new Set([
+  "env",
+  "hooks",
+  "bindings",
+  "broadcast",
+  "canvasHost",
+  "discovery",
+  "logging",
+  "meta",
+  "plugins",
+  "session",
+  "talk",
+  "web",
+  "wizard",
+]);
+
 type SubsectionEntry = {
   key: string;
   label: string;
@@ -398,7 +417,13 @@ export function renderConfig(props: ConfigProps) {
     .filter((k) => !knownKeys.has(k))
     .map((k) => ({ key: k, label: k.charAt(0).toUpperCase() + k.slice(1) }));
 
-  const allSections = [...availableSections, ...extraSections];
+  // Filter sections based on advanced mode (unless searching or viewing all)
+  const allSectionsRaw = [...availableSections, ...extraSections];
+  const allSections = props.searchQuery || props.activeSection === null
+    ? allSectionsRaw
+    : allSectionsRaw.filter((s) =>
+        props.showAdvanced ? true : !ADVANCED_SECTIONS.has(s.key)
+      );
 
   const activeSectionSchema =
     props.activeSection && analysis.schema && schemaType(analysis.schema) === "object"
@@ -514,6 +539,19 @@ export function renderConfig(props: ConfigProps) {
             `,
           )}
         </nav>
+
+        <!-- Advanced toggle -->
+        <div class="config-sidebar__advanced" style="padding: 12px 16px; border-top: 1px solid var(--border);">
+          <label class="field checkbox" style="margin: 0; font-size: 13px;">
+            <input
+              type="checkbox"
+              .checked=${props.showAdvanced}
+              @change=${(e: Event) =>
+                props.onShowAdvancedChange((e.target as HTMLInputElement).checked)}
+            />
+            <span>Show advanced settings</span>
+          </label>
+        </div>
 
         <!-- Mode toggle at bottom -->
         <div class="config-sidebar__footer">

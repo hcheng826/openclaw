@@ -31,6 +31,7 @@ export type ConfigState = {
   configSearchQuery: string;
   configActiveSection: string | null;
   configActiveSubsection: string | null;
+  configShowAdvanced: boolean;
   lastError: string | null;
 };
 

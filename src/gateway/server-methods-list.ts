@@ -19,6 +19,8 @@ const BASE_METHODS = [
   "config.apply",
   "config.patch",
   "config.schema",
+  "context.list",
+  "context.read",
   "exec.approvals.get",
   "exec.approvals.set",
   "exec.approvals.node.get",

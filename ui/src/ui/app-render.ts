@@ -50,6 +50,7 @@ import { TAB_GROUPS, subtitleForTab, titleForTab } from "./navigation";
 import { renderChannels } from "./views/channels";
 import { renderChat } from "./views/chat";
 import { renderConfig } from "./views/config";
+import { renderContext } from "./views/context";
 import { renderCron } from "./views/cron";
 import { renderDebug } from "./views/debug";
 import { renderExecApprovalPrompt } from "./views/exec-approval";
@@ -60,6 +61,12 @@ import { renderNodes } from "./views/nodes";
 import { renderOverview } from "./views/overview";
 import { renderSessions } from "./views/sessions";
 import { renderSkills } from "./views/skills";
+import {
+  loadContextFile,
+  loadContextFiles,
+  navigateContextBack,
+  navigateContextPath,
+} from "./controllers/context";
 
 const AVATAR_DATA_RE = /^data:/i;
 const AVATAR_HTTP_RE = /^https?:\/\//i;
@@ -418,6 +425,25 @@ export function renderApp(state: AppViewState) {
         }
 
         ${
+          state.tab === "context"
+            ? renderContext({
+                loading: state.contextLoading,
+                error: state.contextError,
+                workspacePath: state.contextWorkspacePath,
+                currentPath: state.contextCurrentPath,
+                entries: state.contextEntries,
+                selectedFile: state.contextSelectedFile,
+                fileContent: state.contextFileContent,
+                fileLoading: state.contextFileLoading,
+                onRefresh: () => loadContextFiles(state),
+                onNavigate: (path) => navigateContextPath(state, path),
+                onSelectFile: (path) => loadContextFile(state, path),
+                onBack: () => navigateContextBack(state),
+              })
+            : nothing
+        }
+
+        ${
           state.tab === "chat"
             ? renderChat({
                 sessionKey: state.sessionKey,
@@ -515,6 +541,7 @@ export function renderApp(state: AppViewState) {
                 searchQuery: state.configSearchQuery,
                 activeSection: state.configActiveSection,
                 activeSubsection: state.configActiveSubsection,
+                showAdvanced: state.configShowAdvanced,
                 onRawChange: (next) => {
                   state.configRaw = next;
                 },
@@ -526,6 +553,7 @@ export function renderApp(state: AppViewState) {
                   state.configActiveSubsection = null;
                 },
                 onSubsectionChange: (section) => (state.configActiveSubsection = section),
+                onShowAdvancedChange: (show) => (state.configShowAdvanced = show),
                 onReload: () => loadConfig(state),
                 onSave: () => saveConfig(state),
                 onApply: () => applyConfig(state),

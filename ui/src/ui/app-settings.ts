@@ -9,6 +9,7 @@ import {
 import { scheduleChatScroll, scheduleLogsScroll } from "./app-scroll";
 import { loadChannels } from "./controllers/channels";
 import { loadConfig, loadConfigSchema } from "./controllers/config";
+import { loadContextFiles } from "./controllers/context";
 import { loadCronJobs, loadCronStatus } from "./controllers/cron";
 import { loadDebug } from "./controllers/debug";
 import { loadDevices } from "./controllers/devices";
@@ -190,6 +191,9 @@ export async function refreshActiveTab(host: SettingsHost) {
     await loadDevices(host as unknown as OpenClawApp);
     await loadConfig(host as unknown as OpenClawApp);
     await loadExecApprovals(host as unknown as OpenClawApp);
+  }
+  if (host.tab === "context") {
+    await loadContextFiles(host as unknown as OpenClawApp);
   }
   if (host.tab === "chat") {
     await refreshChat(host as unknown as Parameters<typeof refreshChat>[0]);
