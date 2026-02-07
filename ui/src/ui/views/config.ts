@@ -1,7 +1,7 @@
 import { html, nothing } from "lit";
-import type { ConfigUiHints } from "../types";
-import { analyzeConfigSchema, renderConfigForm, SECTION_META } from "./config-form";
-import { hintForPath, humanize, schemaType, type JsonSchema } from "./config-form.shared";
+import type { ConfigUiHints } from "../types.ts";
+import { hintForPath, humanize, schemaType, type JsonSchema } from "./config-form.shared.ts";
+import { analyzeConfigSchema, renderConfigForm, SECTION_META } from "./config-form.ts";
 
 export type ConfigProps = {
   raw: string;
@@ -419,11 +419,10 @@ export function renderConfig(props: ConfigProps) {
 
   // Filter sections based on advanced mode (unless searching or viewing all)
   const allSectionsRaw = [...availableSections, ...extraSections];
-  const allSections = props.searchQuery || props.activeSection === null
-    ? allSectionsRaw
-    : allSectionsRaw.filter((s) =>
-        props.showAdvanced ? true : !ADVANCED_SECTIONS.has(s.key)
-      );
+  const allSections =
+    props.searchQuery || props.activeSection === null
+      ? allSectionsRaw
+      : allSectionsRaw.filter((s) => (props.showAdvanced ? true : !ADVANCED_SECTIONS.has(s.key)));
 
   const activeSectionSchema =
     props.activeSection && analysis.schema && schemaType(analysis.schema) === "object"
