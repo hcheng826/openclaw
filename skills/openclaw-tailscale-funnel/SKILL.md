@@ -67,6 +67,50 @@ Edit `~/.openclaw/openclaw.json`:
 }
 ```
 
+### 4. Configure AI Model API Key
+
+The agent needs an API key to respond to chats. Create the auth profiles file:
+
+```bash
+mkdir -p ~/.openclaw/agents/main/agent
+```
+
+Create `~/.openclaw/agents/main/agent/auth-profiles.json`:
+
+```json
+{
+  "version": 1,
+  "profiles": {
+    "kimi-coding:default": {
+      "type": "api_key",
+      "provider": "kimi-coding",
+      "key": "YOUR_KIMI_API_KEY"
+    }
+  },
+  "lastGood": {
+    "kimi-coding": "kimi-coding:default"
+  },
+  "usageStats": {
+    "kimi-coding:default": {
+      "lastUsed": 0,
+      "errorCount": 0
+    }
+  }
+}
+```
+
+**Note:** The `version`, `lastGood`, and `usageStats` fields are required. Replace `YOUR_KIMI_API_KEY` with your actual API key.
+
+Set proper permissions:
+```bash
+chmod 600 ~/.openclaw/agents/main/agent/auth-profiles.json
+```
+
+**Verify with doctor:**
+```bash
+openclaw doctor
+```
+
 ### 4. Start Tailscale Funnel
 
 ```bash
@@ -113,6 +157,48 @@ Run with sudo: `sudo tailscale funnel ...`
 
 ### "pairing required" error
 Run `openclaw devices list` and `openclaw devices approve <id>`
+
+### "No API key found for provider" / Agent not responding
+The auth profile file is missing or malformed. Check:
+
+```bash
+# Verify file exists
+cat ~/.openclaw/agents/main/agent/auth-profiles.json
+
+# Check permissions (should be 600)
+ls -la ~/.openclaw/agents/main/agent/auth-profiles.json
+
+# Run doctor to diagnose
+openclaw doctor
+```
+
+**Required file format:**
+```json
+{
+  "version": 1,
+  "profiles": {
+    "kimi-coding:default": {
+      "type": "api_key",
+      "provider": "kimi-coding",
+      "key": "YOUR_API_KEY"
+    }
+  },
+  "lastGood": {
+    "kimi-coding": "kimi-coding:default"
+  },
+  "usageStats": {
+    "kimi-coding:default": {
+      "lastUsed": 0,
+      "errorCount": 0
+    }
+  }
+}
+```
+
+Common mistakes:
+- Missing `version`, `lastGood`, or `usageStats` fields
+- Using `apiKey` instead of `key`
+- Wrong file permissions (too open)
 
 ### Funnel not working
 Ensure Funnel is enabled in Tailscale admin console:
