@@ -1,16 +1,17 @@
 # USER.md - About Your Human
 
-- **Name:** — 
-- **What to call them:** — 
-- **Pronouns:** 
-- **Timezone:** 
-- **Notes:** 
+- **Name:** hung
+- **What to call them:** — (your call)
+- **Pronouns:** —
+- **Timezone:** —
+- **Notes:** GitHub: @hcheng826
 
 ## Context
 
 **Project:** OpenClaw as a platform
 **Scope:** Development, local testing, Docker configuration, GitHub integration
-**Access:** Will provide GitHub access token for repo work
+**Access:** GitHub PAT configured (env: GITHUB_TOKEN)
+**Repo:** https://github.com/hcheng826/openclaw
 
 ---
 
