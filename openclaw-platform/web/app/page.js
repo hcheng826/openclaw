@@ -314,18 +314,99 @@ function Dashboard({ user, onCreate }) {
       ) : (
         <div style={{ display: 'grid', gap: '1rem' }}>
           {instances.map(inst => (
-            <Card key={inst.id}>
-              <h3>Instance {inst.id?.slice(0, 8)}</h3>
-              <p>Status: {inst.status}</p>
-              <p>Model: {inst.modelProvider}</p>
-              <a href={inst.dashboardUrl} target="_blank" rel="noopener" style={{ color: '#667eea' }}>
-                Open Dashboard →
-              </a>
-            </Card>
+            <InstanceCard key={inst.id} instance={inst} />
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+function InstanceCard({ instance }) {
+  const [pairingCode, setPairingCode] = useState('');
+  const [pairingStatus, setPairingStatus] = useState(instance.paired ? 'paired' : 'pending');
+  const [pairingError, setPairingError] = useState(null);
+  const [pairingLoading, setPairingLoading] = useState(false);
+
+  const handlePair = async (e) => {
+    e.preventDefault();
+    setPairingLoading(true);
+    setPairingError(null);
+    
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/platform/api/instances/${instance.id}/pair`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ code: pairingCode })
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        setPairingStatus('paired');
+        setPairingCode('');
+      } else {
+        setPairingError(data.error || 'Pairing failed');
+      }
+    } catch (err) {
+      setPairingError('Network error. Please try again.');
+    } finally {
+      setPairingLoading(false);
+    }
+  };
+
+  return (
+    <Card>
+      <h3>Instance {instance.id?.slice(0, 8)}</h3>
+      <p><strong>Status:</strong> {instance.status}</p>
+      <p><strong>Model:</strong> {instance.modelProvider}</p>
+      
+      <div style={{ marginTop: '1rem', padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
+        <h4 style={{ marginTop: 0 }}>📱 Telegram Bot</h4>
+        <p style={{ margin: '0.5rem 0' }}><strong>Bot:</strong> @{instance.telegramBotUsername}</p>
+        <p style={{ margin: '0.5rem 0' }}>
+          <strong>Status:</strong>{' '}
+          {pairingStatus === 'paired' ? (
+            <span style={{ color: '#28a745' }}>✅ Paired</span>
+          ) : (
+            <span style={{ color: '#ffc107' }}>⏳ Pending pairing</span>
+          )}
+        </p>
+        
+        {pairingStatus !== 'paired' && (
+          <div style={{ marginTop: '1rem' }}>
+            <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem' }}>
+              1. Open Telegram and message @{instance.telegramBotUsername}<br/>
+              2. Send /start to get your pairing code<br/>
+              3. Enter the code below:
+            </p>
+            <form onSubmit={handlePair}>
+              <Input 
+                type="text" 
+                placeholder="Enter pairing code (e.g., ABC123)" 
+                value={pairingCode}
+                onChange={e => setPairingCode(e.target.value)}
+                required
+              />
+              {pairingError && <p style={{ color: '#e74c3c', marginBottom: '0.5rem' }}>{pairingError}</p>}
+              <Button disabled={pairingLoading}>
+                {pairingLoading ? 'Pairing...' : 'Complete Pairing'}
+              </Button>
+            </form>
+          </div>
+        )}
+      </div>
+      
+      <div style={{ marginTop: '1rem' }}>
+        <a href={instance.dashboardUrl} target="_blank" rel="noopener" style={{ color: '#667eea' }}>
+          Open Dashboard →
+        </a>
+      </div>
+    </Card>
   );
 }
 

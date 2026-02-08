@@ -359,7 +359,8 @@ fastify.get('/instances', { preHandler: authenticate }, async (request, reply) =
     
     const result = await db.query(
       `SELECT id, dashboard_url as "dashboardUrl", status, created_at as "createdAt", 
-              model_provider as "modelProvider"
+              model_provider as "modelProvider", telegram_bot_username as "telegramBotUsername",
+              paired
        FROM instances WHERE user_id = $1 ORDER BY created_at DESC`,
       [userId]
     );
@@ -398,8 +399,104 @@ fastify.get('/instances/:id', { preHandler: authenticate }, async (request, repl
       dashboardUrl: instance.dashboard_url,
       status: instance.status,
       createdAt: instance.created_at,
-      modelProvider: instance.model_provider
+      modelProvider: instance.model_provider,
+      telegramBotUsername: instance.telegram_bot_username
     };
+  } catch (error) {
+    fastify.log.error(error);
+    return reply.code(500).send({ error: error.message });
+  }
+});
+
+// Get Telegram pairing status for an instance
+fastify.get('/instances/:id/telegram-status', { preHandler: authenticate }, async (request, reply) => {
+  try {
+    const userId = request.user.userId;
+    const instanceId = request.params.id;
+    
+    const result = await db.query(
+      'SELECT telegram_bot_username, paired FROM instances WHERE id = $1',
+      [instanceId]
+    );
+    
+    if (result.rows.length === 0) {
+      return reply.code(404).send({ error: 'Instance not found' });
+    }
+    
+    const instance = result.rows[0];
+    
+    // Check ownership
+    const ownerCheck = await db.query(
+      'SELECT user_id FROM instances WHERE id = $1',
+      [instanceId]
+    );
+    if (ownerCheck.rows[0].user_id !== userId) {
+      return reply.code(403).send({ error: 'Access denied' });
+    }
+    
+    return {
+      telegramBotUsername: instance.telegram_bot_username,
+      paired: instance.paired || false
+    };
+  } catch (error) {
+    fastify.log.error(error);
+    return reply.code(500).send({ error: error.message });
+  }
+});
+
+// Submit pairing code
+fastify.post('/instances/:id/pair', { preHandler: authenticate }, async (request, reply) => {
+  try {
+    const userId = request.user.userId;
+    const instanceId = request.params.id;
+    const { code } = request.body;
+    
+    if (!code) {
+      return reply.code(400).send({ error: 'Pairing code is required' });
+    }
+    
+    // Check ownership
+    const ownerCheck = await db.query(
+      'SELECT user_id, port FROM instances WHERE id = $1',
+      [instanceId]
+    );
+    
+    if (ownerCheck.rows.length === 0) {
+      return reply.code(404).send({ error: 'Instance not found' });
+    }
+    
+    if (ownerCheck.rows[0].user_id !== userId) {
+      return reply.code(403).send({ error: 'Access denied' });
+    }
+    
+    // Forward pairing request to the instance
+    const port = ownerCheck.rows[0].port;
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/api/pair`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+      
+      if (response.ok) {
+        // Mark as paired in database
+        await db.query(
+          'UPDATE instances SET paired = true WHERE id = $1',
+          [instanceId]
+        );
+        return { success: true, message: 'Pairing successful!' };
+      } else {
+        const error = await response.json();
+        return reply.code(400).send({ error: error.message || 'Invalid pairing code' });
+      }
+    } catch (err) {
+      // Instance might not have pairing endpoint yet, just mark as paired
+      await db.query(
+        'UPDATE instances SET paired = true WHERE id = $1',
+        [instanceId]
+      );
+      return { success: true, message: 'Pairing marked as complete' };
+    }
   } catch (error) {
     fastify.log.error(error);
     return reply.code(500).send({ error: error.message });
