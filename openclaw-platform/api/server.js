@@ -147,7 +147,8 @@ function generateOpenClawConfig(config) {
       telegram: {
         enabled: true,
         botToken: config.telegramToken,
-        dmPolicy: "pairing"
+        dmPolicy: "allowlist",
+        allowlist: [config.telegramHandle]
       }
     }
   };
@@ -259,11 +260,11 @@ fastify.get('/auth/me', { preHandler: authenticate }, async (request, reply) => 
 // Create instance endpoint (protected)
 fastify.post('/instances', { preHandler: authenticate }, async (request, reply) => {
   try {
-    const { modelProvider, apiKey, telegramToken, telegramBotUsername } = request.body;
+    const { modelProvider, apiKey, telegramToken, telegramBotUsername, telegramHandle } = request.body;
     const userId = request.user.userId;
     const email = request.user.email;
 
-    if (!modelProvider || !apiKey || !telegramToken || !telegramBotUsername) {
+    if (!modelProvider || !apiKey || !telegramToken || !telegramBotUsername || !telegramHandle) {
       return reply.code(400).send({ error: 'Missing required fields' });
     }
 
@@ -285,6 +286,7 @@ fastify.post('/instances', { preHandler: authenticate }, async (request, reply) 
       modelProvider,
       telegramToken,
       telegramBotUsername,
+      telegramHandle,
       password
     });
     
@@ -360,7 +362,7 @@ fastify.get('/instances', { preHandler: authenticate }, async (request, reply) =
     const result = await db.query(
       `SELECT id, dashboard_url as "dashboardUrl", status, created_at as "createdAt", 
               model_provider as "modelProvider", telegram_bot_username as "telegramBotUsername",
-              paired, password
+              paired, password, token
        FROM instances WHERE user_id = $1 ORDER BY created_at DESC`,
       [userId]
     );

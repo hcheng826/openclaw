@@ -324,6 +324,7 @@ function Dashboard({ user, onCreate }) {
 
 function InstanceCard({ instance }) {
   const [showPassword, setShowPassword] = useState(false);
+  const [showToken, setShowToken] = useState(false);
   
   return (
     <Card>
@@ -338,25 +339,35 @@ function InstanceCard({ instance }) {
             {instance.dashboardUrl}
           </a>
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0.5rem 0' }}>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0.5rem 0', flexWrap: 'wrap' }}>
           <strong>Password:</strong>{' '}
           <span style={{ fontFamily: 'monospace', background: '#f0f0f0', padding: '2px 6px', borderRadius: '4px' }}>
             {showPassword ? instance.password : '••••••••••••'}
           </span>
           <button 
             onClick={() => setShowPassword(!showPassword)}
-            style={{ 
-              background: 'none', 
-              border: 'none', 
-              cursor: 'pointer',
-              fontSize: '0.9rem'
-            }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
           >
             {showPassword ? '🙈 Hide' : '👁️ Show'}
           </button>
         </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0.5rem 0', flexWrap: 'wrap' }}>
+          <strong>Gateway Token:</strong>{' '}
+          <span style={{ fontFamily: 'monospace', background: '#f0f0f0', padding: '2px 6px', borderRadius: '4px', fontSize: '0.8rem', maxWidth: '180px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {showToken ? instance.token : '••••••••••••••••••••'}
+          </span>
+          <button 
+            onClick={() => setShowToken(!showToken)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
+          >
+            {showToken ? '🙈 Hide' : '👁️ Show'}
+          </button>
+        </div>
+        
         <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.5rem' }}>
-          💡 Use this password to access your OpenClaw dashboard
+          💡 Use these credentials in your OpenClaw dashboard settings
         </p>
       </div>
       
@@ -368,7 +379,7 @@ function InstanceCard({ instance }) {
           <p><strong>To complete pairing:</strong></p>
           <ol style={{ paddingLeft: '1.2rem', lineHeight: '1.8' }}>
             <li>Open your <a href={instance.dashboardUrl} target="_blank" rel="noopener" style={{ color: '#667eea' }}>OpenClaw Dashboard</a></li>
-            <li>Enter the password above when prompted</li>
+            <li>Enter the <strong>Password</strong> and <strong>Gateway Token</strong> above</li>
             <li>Go to <strong>Channels → Telegram</strong> in the dashboard</li>
             <li>Open Telegram and message <strong>@{instance.telegramBotUsername}</strong></li>
             <li>Send <code>/start</code> to get your pairing code</li>
@@ -390,6 +401,7 @@ function CreateInstance({ onBack, onCreated }) {
     apiKey: '',
     telegramToken: '',
     telegramBotUsername: '',
+    telegramHandle: '',
   });
 
   const handleSubmit = async (e) => {
@@ -430,21 +442,6 @@ function CreateInstance({ onBack, onCreated }) {
           <p><strong>Password:</strong> {instance.password}</p>
           <p><strong>Bot:</strong> @{instance.telegramBotUsername}</p>
         </div>
-        
-        <div style={{ background: '#e8f5e9', padding: '1.5rem', borderRadius: '8px', marginBottom: '1rem', textAlign: 'left' }}>
-          <h3>📱 Pair Your Telegram Bot</h3>
-          <p>To complete setup, you need to pair your bot:</p>
-          <ol style={{ paddingLeft: '1.2rem', lineHeight: '1.8' }}>
-            <li>Open Telegram and search for <strong>@{instance.telegramBotUsername}</strong></li>
-            <li>Send <code>/start</code> or any message to your bot</li>
-            <li>The bot will reply with a <strong>verification code</strong></li>
-            <li>Go to your <a href={instance.dashboardUrl} target="_blank" rel="noopener" style={{ color: '#667eea' }}>dashboard</a> and enter the code</li>
-          </ol>
-          <p style={{ marginTop: '1rem', fontSize: '0.9rem', color: '#666' }}>
-            💡 The bot needs this pairing step to know which chat to send messages to.
-          </p>
-        </div>
-        
         <Button onClick={onBack}>Back to Dashboard</Button>
       </Card>
     );
@@ -512,13 +509,20 @@ function CreateInstance({ onBack, onCreated }) {
             onChange={e => setForm({...form, telegramBotUsername: e.target.value})} 
             required 
           />
+          <Input 
+            type="text" 
+            placeholder="Your Telegram Handle (e.g., @yourusername)" 
+            value={form.telegramHandle} 
+            onChange={e => setForm({...form, telegramHandle: e.target.value.replace('@', '')})} 
+            required 
+          />
           <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1rem' }}>
-            ℹ️ This is the username you chose (ends with 'bot'). BotFather shows it after "You can now use..."
+            ℹ️ Enter your personal Telegram username (the one you'll use to chat with the bot)
           </p>
           
           <div style={{ display: 'flex', gap: '1rem' }}>
             <Button onClick={() => setStep(1)} secondary>Back</Button>
-            <Button onClick={() => form.telegramToken && form.telegramBotUsername && setStep(3)}>Continue</Button>
+            <Button onClick={() => form.telegramToken && form.telegramBotUsername && form.telegramHandle && setStep(3)}>Continue</Button>
           </div>
         </>
       )}
