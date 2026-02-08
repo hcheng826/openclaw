@@ -259,11 +259,11 @@ fastify.get('/auth/me', { preHandler: authenticate }, async (request, reply) => 
 // Create instance endpoint (protected)
 fastify.post('/instances', { preHandler: authenticate }, async (request, reply) => {
   try {
-    const { modelProvider, apiKey, telegramToken } = request.body;
+    const { modelProvider, apiKey, telegramToken, telegramBotUsername } = request.body;
     const userId = request.user.userId;
     const email = request.user.email;
 
-    if (!modelProvider || !apiKey || !telegramToken) {
+    if (!modelProvider || !apiKey || !telegramToken || !telegramBotUsername) {
       return reply.code(400).send({ error: 'Missing required fields' });
     }
 
@@ -284,6 +284,7 @@ fastify.post('/instances', { preHandler: authenticate }, async (request, reply) 
     const openclawConfig = generateOpenClawConfig({
       modelProvider,
       telegramToken,
+      telegramBotUsername,
       password
     });
     
@@ -327,7 +328,7 @@ fastify.post('/instances', { preHandler: authenticate }, async (request, reply) 
         model_provider, telegram_bot_username, dashboard_url, status) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
       [instanceId, userId, email, port, password, token, subdomain, container.id, 
-       modelProvider, telegramToken.split(':')[0], dashboardUrl, 'running']
+       modelProvider, telegramBotUsername, dashboardUrl, 'running']
     );
     
     // Write instance-port mapping for nginx
@@ -341,7 +342,7 @@ fastify.post('/instances', { preHandler: authenticate }, async (request, reply) 
       id: instanceId,
       dashboardUrl,
       password,
-      telegramBotUsername: `bot_${telegramToken.split(':')[0]}`,
+      telegramBotUsername,
       status: 'running'
     };
 

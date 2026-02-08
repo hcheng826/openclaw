@@ -338,6 +338,7 @@ function CreateInstance({ onBack, onCreated }) {
     modelProvider: 'kimi-coding',
     apiKey: '',
     telegramToken: '',
+    telegramBotUsername: '',
   });
 
   const handleSubmit = async (e) => {
@@ -453,9 +454,20 @@ function CreateInstance({ onBack, onCreated }) {
             onChange={e => setForm({...form, telegramToken: e.target.value})} 
             required 
           />
+          <Input 
+            type="text" 
+            placeholder="Bot Username (e.g., myclaw_bot)" 
+            value={form.telegramBotUsername} 
+            onChange={e => setForm({...form, telegramBotUsername: e.target.value})} 
+            required 
+          />
+          <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '1rem' }}>
+            ℹ️ This is the username you chose (ends with 'bot'). BotFather shows it after "You can now use..."
+          </p>
+          
           <div style={{ display: 'flex', gap: '1rem' }}>
             <Button onClick={() => setStep(1)} secondary>Back</Button>
-            <Button onClick={() => form.telegramToken && setStep(3)}>Continue</Button>
+            <Button onClick={() => form.telegramToken && form.telegramBotUsername && setStep(3)}>Continue</Button>
           </div>
         </>
       )}
