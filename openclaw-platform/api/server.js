@@ -147,8 +147,7 @@ function generateOpenClawConfig(config) {
       telegram: {
         enabled: true,
         botToken: config.telegramToken,
-        dmPolicy: "allowlist",
-        allowlist: [config.telegramHandle]
+        dmPolicy: "pairing"
       }
     }
   };
