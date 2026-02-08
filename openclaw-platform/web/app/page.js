@@ -323,11 +323,42 @@ function Dashboard({ user, onCreate }) {
 }
 
 function InstanceCard({ instance }) {
+  const [showPassword, setShowPassword] = useState(false);
+  
   return (
     <Card>
       <h3>Instance {instance.id?.slice(0, 8)}</h3>
       <p><strong>Status:</strong> {instance.status}</p>
       <p><strong>Model:</strong> {instance.modelProvider}</p>
+      
+      <div style={{ marginTop: '1rem', padding: '1rem', background: '#e8f4fd', borderRadius: '8px' }}>
+        <h4 style={{ marginTop: 0 }}>🔐 Dashboard Access</h4>
+        <p style={{ margin: '0.5rem 0' }}><strong>URL:</strong>{' '}
+          <a href={instance.dashboardUrl} target="_blank" rel="noopener" style={{ color: '#667eea' }}>
+            {instance.dashboardUrl}
+          </a>
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0.5rem 0' }}>
+          <strong>Password:</strong>{' '}
+          <span style={{ fontFamily: 'monospace', background: '#f0f0f0', padding: '2px 6px', borderRadius: '4px' }}>
+            {showPassword ? instance.password : '••••••••••••'}
+          </span>
+          <button 
+            onClick={() => setShowPassword(!showPassword)}
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            {showPassword ? '🙈 Hide' : '👁️ Show'}
+          </button>
+        </div>
+        <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.5rem' }}>
+          💡 Use this password to access your OpenClaw dashboard
+        </p>
+      </div>
       
       <div style={{ marginTop: '1rem', padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
         <h4 style={{ marginTop: 0 }}>📱 Telegram Bot</h4>
@@ -336,18 +367,14 @@ function InstanceCard({ instance }) {
         <div style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
           <p><strong>To complete pairing:</strong></p>
           <ol style={{ paddingLeft: '1.2rem', lineHeight: '1.8' }}>
+            <li>Open your <a href={instance.dashboardUrl} target="_blank" rel="noopener" style={{ color: '#667eea' }}>OpenClaw Dashboard</a></li>
+            <li>Enter the password above when prompted</li>
+            <li>Go to <strong>Channels → Telegram</strong> in the dashboard</li>
             <li>Open Telegram and message <strong>@{instance.telegramBotUsername}</strong></li>
             <li>Send <code>/start</code> to get your pairing code</li>
-            <li>Go to your <a href={instance.dashboardUrl} target="_blank" rel="noopener" style={{ color: '#667eea' }}>OpenClaw Dashboard</a></li>
-            <li>Enter the pairing code there to complete setup</li>
+            <li>Enter the pairing code in the dashboard to complete setup</li>
           </ol>
         </div>
-      </div>
-      
-      <div style={{ marginTop: '1rem' }}>
-        <a href={instance.dashboardUrl} target="_blank" rel="noopener" style={{ color: '#667eea' }}>
-          Open Dashboard →
-        </a>
       </div>
     </Card>
   );

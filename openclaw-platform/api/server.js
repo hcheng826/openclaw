@@ -360,7 +360,7 @@ fastify.get('/instances', { preHandler: authenticate }, async (request, reply) =
     const result = await db.query(
       `SELECT id, dashboard_url as "dashboardUrl", status, created_at as "createdAt", 
               model_provider as "modelProvider", telegram_bot_username as "telegramBotUsername",
-              paired
+              paired, password
        FROM instances WHERE user_id = $1 ORDER BY created_at DESC`,
       [userId]
     );
