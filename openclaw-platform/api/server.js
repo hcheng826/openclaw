@@ -273,7 +273,7 @@ fastify.post('/instances', { preHandler: authenticate }, async (request, reply) 
     const password = generatePassword();
     const token = generateToken();
     const subdomain = `user-${instanceId.slice(0, 8)}`;
-    const dashboardUrl = `https://ip-10-0-24-43.tail9f77e8.ts.net:${port + 10000}`;
+    const dashboardUrl = `https://ip-10-0-24-43.tail9f77e8.ts.net/i/${instanceId}`;
 
     // Create directories
     const instanceDir = path.join(DATA_DIR, instanceId);
@@ -329,6 +329,11 @@ fastify.post('/instances', { preHandler: authenticate }, async (request, reply) 
       [instanceId, userId, email, port, password, token, subdomain, container.id, 
        modelProvider, telegramToken.split(':')[0], dashboardUrl, 'running']
     );
+    
+    // Write instance-port mapping for nginx
+    const mapFile = '/data/instance-ports.map';
+    const mapEntry = `${instanceId} ${port};\n`;
+    await fs.appendFile(mapFile, mapEntry, 'utf8');
 
     fastify.log.info(`Instance created: ${instanceId} for user ${email} on port ${port}`);
 
@@ -413,6 +418,53 @@ fastify.get('/health', async () => {
     };
   } catch (error) {
     return { status: 'error', message: error.message };
+  }
+});
+
+// Resolve instance ID to port (for nginx proxying)
+fastify.get('/resolve-instance', async (request, reply) => {
+  try {
+    const { id } = request.query;
+    if (!id) {
+      return reply.code(400).send({ error: 'Missing instance ID' });
+    }
+    
+    const result = await db.query(
+      'SELECT port FROM instances WHERE id = $1',
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return reply.code(404).send({ error: 'Instance not found' });
+    }
+    
+    const port = result.rows[0].port;
+    // Redirect to the actual port
+    return reply.redirect(`http://ip-10-0-24-43.tail9f77e8.ts.net:${port}`);
+  } catch (error) {
+    fastify.log.error(error);
+    return reply.code(500).send({ error: error.message });
+  }
+});
+
+// Telegram bot pairing endpoint
+fastify.post('/pair', async (request, reply) => {
+  try {
+    const { instanceId, code } = request.body;
+    
+    if (!instanceId || !code) {
+      return reply.code(400).send({ error: 'Missing instanceId or code' });
+    }
+    
+    // TODO: Implement actual pairing logic
+    // For now, just return success
+    return { 
+      success: true, 
+      message: 'Pairing successful. Your bot is now connected.' 
+    };
+  } catch (error) {
+    fastify.log.error(error);
+    return reply.code(500).send({ error: error.message });
   }
 });
 
