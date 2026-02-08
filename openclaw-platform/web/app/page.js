@@ -20,7 +20,7 @@ export default function Home() {
     setError(null);
 
     try {
-      const res = await fetch('/api/instances', {
+      const res = await fetch('/platform/api/instances', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),

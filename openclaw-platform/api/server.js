@@ -7,7 +7,8 @@ const path = require('path');
 const docker = new Docker({ socketPath: process.env.DOCKER_SOCKET || '/var/run/docker.sock' });
 const PORT = process.env.PORT || 3001;
 const BASE_PORT = parseInt(process.env.INSTANCE_BASE_PORT || '20000');
-const DATA_DIR = '/data/instances';
+const DATA_DIR = process.env.DATA_DIR || '/data/instances';
+const HOST_DATA_DIR = process.env.HOST_DATA_DIR || '/home/ubuntu/openclaw-platform/data/instances';
 
 // In-memory storage for MVP (use PostgreSQL in production)
 const instances = new Map();
@@ -27,12 +28,12 @@ function generateToken() {
 function generateOpenClawConfig(config) {
   return {
     meta: {
-      lastTouchedVersion: "2026.2.6-3",
+      lastTouchedVersion: "2026.2.1",
       lastTouchedAt: new Date().toISOString()
     },
     wizard: {
       lastRunAt: new Date().toISOString(),
-      lastRunVersion: "2026.2.6-3",
+      lastRunVersion: "2026.2.1",
       lastRunCommand: "onboard",
       lastRunMode: "local"
     },
@@ -163,7 +164,7 @@ fastify.post('/instances', async (request, reply) => {
           '18789/tcp': [{ HostPort: port.toString() }]
         },
         Binds: [
-          `${instanceDir}:/home/node/.openclaw`,
+          `${path.join(HOST_DATA_DIR, instanceId)}:/home/node/.openclaw`,
         ],
         RestartPolicy: { Name: 'unless-stopped' }
       },

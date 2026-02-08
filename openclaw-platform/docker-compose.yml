@@ -27,6 +27,8 @@ services:
       - DOCKER_SOCKET=/var/run/docker.sock
       - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
       - INSTANCE_BASE_PORT=20000
+      - DATA_DIR=/data/instances
+      - HOST_DATA_DIR=/home/ubuntu/openclaw-platform/data/instances
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./data/instances:/data/instances
