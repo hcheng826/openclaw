@@ -323,42 +323,6 @@ function Dashboard({ user, onCreate }) {
 }
 
 function InstanceCard({ instance }) {
-  const [pairingCode, setPairingCode] = useState('');
-  const [pairingStatus, setPairingStatus] = useState(instance.paired ? 'paired' : 'pending');
-  const [pairingError, setPairingError] = useState(null);
-  const [pairingLoading, setPairingLoading] = useState(false);
-
-  const handlePair = async (e) => {
-    e.preventDefault();
-    setPairingLoading(true);
-    setPairingError(null);
-    
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`/platform/api/instances/${instance.id}/pair`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ code: pairingCode })
-      });
-      
-      const data = await res.json();
-      
-      if (res.ok) {
-        setPairingStatus('paired');
-        setPairingCode('');
-      } else {
-        setPairingError(data.error || 'Pairing failed');
-      }
-    } catch (err) {
-      setPairingError('Network error. Please try again.');
-    } finally {
-      setPairingLoading(false);
-    }
-  };
-
   return (
     <Card>
       <h3>Instance {instance.id?.slice(0, 8)}</h3>
@@ -368,37 +332,16 @@ function InstanceCard({ instance }) {
       <div style={{ marginTop: '1rem', padding: '1rem', background: '#f8f9fa', borderRadius: '8px' }}>
         <h4 style={{ marginTop: 0 }}>📱 Telegram Bot</h4>
         <p style={{ margin: '0.5rem 0' }}><strong>Bot:</strong> @{instance.telegramBotUsername}</p>
-        <p style={{ margin: '0.5rem 0' }}>
-          <strong>Status:</strong>{' '}
-          {pairingStatus === 'paired' ? (
-            <span style={{ color: '#28a745' }}>✅ Paired</span>
-          ) : (
-            <span style={{ color: '#ffc107' }}>⏳ Pending pairing</span>
-          )}
-        </p>
         
-        {pairingStatus !== 'paired' && (
-          <div style={{ marginTop: '1rem' }}>
-            <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '0.5rem' }}>
-              1. Open Telegram and message @{instance.telegramBotUsername}<br/>
-              2. Send /start to get your pairing code<br/>
-              3. Enter the code below:
-            </p>
-            <form onSubmit={handlePair}>
-              <Input 
-                type="text" 
-                placeholder="Enter pairing code (e.g., ABC123)" 
-                value={pairingCode}
-                onChange={e => setPairingCode(e.target.value)}
-                required
-              />
-              {pairingError && <p style={{ color: '#e74c3c', marginBottom: '0.5rem' }}>{pairingError}</p>}
-              <Button disabled={pairingLoading}>
-                {pairingLoading ? 'Pairing...' : 'Complete Pairing'}
-              </Button>
-            </form>
-          </div>
-        )}
+        <div style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
+          <p><strong>To complete pairing:</strong></p>
+          <ol style={{ paddingLeft: '1.2rem', lineHeight: '1.8' }}>
+            <li>Open Telegram and message <strong>@{instance.telegramBotUsername}</strong></li>
+            <li>Send <code>/start</code> to get your pairing code</li>
+            <li>Go to your <a href={instance.dashboardUrl} target="_blank" rel="noopener" style={{ color: '#667eea' }}>OpenClaw Dashboard</a></li>
+            <li>Enter the pairing code there to complete setup</li>
+          </ol>
+        </div>
       </div>
       
       <div style={{ marginTop: '1rem' }}>
