@@ -92,6 +92,13 @@ export default function Home() {
     checkAuth();
   }, []);
 
+  // Safety: if user is logged in but view is not dashboard or create, reset to dashboard
+  useEffect(() => {
+    if (user && view !== 'dashboard' && view !== 'create') {
+      setView('dashboard');
+    }
+  }, [user, view]);
+
   const handleLogin = async (email, password) => {
     const res = await fetch('/platform/api/auth/login', {
       method: 'POST',
