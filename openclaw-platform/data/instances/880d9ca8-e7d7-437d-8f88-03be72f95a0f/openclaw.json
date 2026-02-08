@@ -1,0 +1,74 @@
+{
+  "meta": {
+    "lastTouchedVersion": "2026.2.1",
+    "lastTouchedAt": "2026-02-08T10:39:35.378Z"
+  },
+  "wizard": {
+    "lastRunAt": "2026-02-08T10:39:35.378Z",
+    "lastRunVersion": "2026.2.1",
+    "lastRunCommand": "onboard",
+    "lastRunMode": "local"
+  },
+  "auth": {
+    "profiles": {
+      "kimi-coding:default": {
+        "provider": "kimi-coding",
+        "mode": "api_key"
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "kimi-coding"
+      },
+      "models": {
+        "kimi-coding": {
+          "alias": "AI Model"
+        }
+      },
+      "workspace": "/home/node/.openclaw/workspace",
+      "compaction": {
+        "mode": "safeguard"
+      },
+      "maxConcurrent": 4,
+      "subagents": {
+        "maxConcurrent": 8
+      }
+    }
+  },
+  "messages": {
+    "ackReactionScope": "group-mentions"
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto"
+  },
+  "gateway": {
+    "port": 18789,
+    "mode": "local",
+    "bind": "lan",
+    "auth": {
+      "mode": "password",
+      "password": "0bcaff594c4a4156"
+    },
+    "tailscale": {
+      "mode": "off",
+      "resetOnExit": false
+    }
+  },
+  "plugins": {
+    "entries": {
+      "telegram": {
+        "enabled": true
+      }
+    }
+  },
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "botToken": "8247288633:AAHIdViiIhnrAND0zSNZCD_sCMZC5UrQZ7I",
+      "dmPolicy": "pairing"
+    }
+  }
+}

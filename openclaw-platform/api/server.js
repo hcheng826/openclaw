@@ -1,4 +1,5 @@
 const fastify = require('fastify')({ logger: true });
+const { Client } = require('pg');
 const Docker = require('dockerode');
 const crypto = require('crypto');
 const fs = require('fs').promises;
@@ -13,10 +14,54 @@ const DATA_DIR = process.env.DATA_DIR || '/data/instances';
 const HOST_DATA_DIR = process.env.HOST_DATA_DIR || '/home/ubuntu/openclaw-platform/data/instances';
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
-// In-memory storage for MVP (use PostgreSQL in production)
-const users = new Map();
-const instances = new Map();
+// PostgreSQL client
+const db = new Client({
+  connectionString: process.env.DATABASE_URL || 'postgresql://openclaw:openclaw@postgres:5432/openclaw'
+});
+
 let nextPort = BASE_PORT;
+
+// Connect to database and initialize
+async function initDatabase() {
+  await db.connect();
+  
+  // Create tables if they don't exist
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      email VARCHAR(255) UNIQUE NOT NULL,
+      password_hash VARCHAR(255) NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    );
+  `);
+  
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS instances (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      email VARCHAR(255) NOT NULL,
+      port INTEGER NOT NULL,
+      password VARCHAR(255) NOT NULL,
+      token VARCHAR(255) NOT NULL,
+      subdomain VARCHAR(255) NOT NULL,
+      container_id VARCHAR(255),
+      model_provider VARCHAR(100),
+      telegram_bot_username VARCHAR(255),
+      dashboard_url VARCHAR(500),
+      status VARCHAR(50) DEFAULT 'running',
+      created_at TIMESTAMP DEFAULT NOW()
+    );
+  `);
+  
+  // Get max port from existing instances
+  const result = await db.query('SELECT MAX(port) as max_port FROM instances');
+  if (result.rows[0].max_port) {
+    nextPort = result.rows[0].max_port + 1;
+  }
+  
+  console.log('✅ Database initialized');
+}
 
 // Generate secure password
 function generatePassword() {
@@ -144,26 +189,26 @@ fastify.post('/auth/register', async (request, reply) => {
       return reply.code(400).send({ error: 'Password must be at least 8 characters' });
     }
     
-    if (users.has(email)) {
+    // Check if user exists
+    const existing = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
       return reply.code(409).send({ error: 'User already exists' });
     }
     
     const hashedPassword = await bcrypt.hash(password, 10);
-    const userId = crypto.randomUUID();
     
-    users.set(email, {
-      id: userId,
-      email,
-      password: hashedPassword,
-      createdAt: new Date().toISOString()
-    });
+    const result = await db.query(
+      'INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, email, created_at',
+      [email, hashedPassword]
+    );
     
-    const token = jwt.sign({ userId, email }, JWT_SECRET, { expiresIn: '7d' });
+    const user = result.rows[0];
+    const token = jwt.sign({ userId: user.id, email }, JWT_SECRET, { expiresIn: '7d' });
     
     return {
       message: 'User registered successfully',
       token,
-      user: { id: userId, email }
+      user: { id: user.id, email: user.email }
     };
   } catch (error) {
     fastify.log.error(error);
@@ -180,12 +225,15 @@ fastify.post('/auth/login', async (request, reply) => {
       return reply.code(400).send({ error: 'Email and password required' });
     }
     
-    const user = users.get(email);
-    if (!user) {
+    const result = await db.query('SELECT id, email, password_hash FROM users WHERE email = $1', [email]);
+    
+    if (result.rows.length === 0) {
       return reply.code(401).send({ error: 'Invalid credentials' });
     }
     
-    const isValid = await bcrypt.compare(password, user.password);
+    const user = result.rows[0];
+    const isValid = await bcrypt.compare(password, user.password_hash);
+    
     if (!isValid) {
       return reply.code(401).send({ error: 'Invalid credentials' });
     }
@@ -225,6 +273,7 @@ fastify.post('/instances', { preHandler: authenticate }, async (request, reply) 
     const password = generatePassword();
     const token = generateToken();
     const subdomain = `user-${instanceId.slice(0, 8)}`;
+    const dashboardUrl = `https://ip-10-0-24-43.tail9f77e8.ts.net:${port + 10000}`;
 
     // Create directories
     const instanceDir = path.join(DATA_DIR, instanceId);
@@ -272,30 +321,20 @@ fastify.post('/instances', { preHandler: authenticate }, async (request, reply) 
 
     await container.start();
 
-    // Store instance info
-    const instance = {
-      id: instanceId,
-      userId,
-      email,
-      port,
-      password,
-      token,
-      subdomain,
-      containerId: container.id,
-      status: 'running',
-      createdAt: new Date().toISOString(),
-      dashboardUrl: `https://ip-10-0-24-43.tail9f77e8.ts.net:${port + 10000}`,
-      modelProvider,
-      telegramBotUsername: telegramToken.split(':')[0]
-    };
-    
-    instances.set(instanceId, instance);
+    // Save to database
+    await db.query(
+      `INSERT INTO instances (id, user_id, email, port, password, token, subdomain, container_id, 
+        model_provider, telegram_bot_username, dashboard_url, status) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+      [instanceId, userId, email, port, password, token, subdomain, container.id, 
+       modelProvider, telegramToken.split(':')[0], dashboardUrl, 'running']
+    );
 
     fastify.log.info(`Instance created: ${instanceId} for user ${email} on port ${port}`);
 
     return {
       id: instanceId,
-      dashboardUrl: instance.dashboardUrl,
+      dashboardUrl,
       password,
       telegramBotUsername: `bot_${telegramToken.split(':')[0]}`,
       status: 'running'
@@ -309,43 +348,78 @@ fastify.post('/instances', { preHandler: authenticate }, async (request, reply) 
 
 // Get user's instances
 fastify.get('/instances', { preHandler: authenticate }, async (request, reply) => {
-  const userId = request.user.userId;
-  const userInstances = Array.from(instances.values())
-    .filter(inst => inst.userId === userId)
-    .map(inst => ({
-      id: inst.id,
-      dashboardUrl: inst.dashboardUrl,
-      status: inst.status,
-      createdAt: inst.createdAt,
-      modelProvider: inst.modelProvider
-    }));
-  
-  return { instances: userInstances };
+  try {
+    const userId = request.user.userId;
+    
+    const result = await db.query(
+      `SELECT id, dashboard_url as "dashboardUrl", status, created_at as "createdAt", 
+              model_provider as "modelProvider"
+       FROM instances WHERE user_id = $1 ORDER BY created_at DESC`,
+      [userId]
+    );
+    
+    return { instances: result.rows };
+  } catch (error) {
+    fastify.log.error(error);
+    return reply.code(500).send({ error: error.message });
+  }
 });
 
 // Get instance status (protected)
 fastify.get('/instances/:id', { preHandler: authenticate }, async (request, reply) => {
-  const instance = instances.get(request.params.id);
-  if (!instance) {
-    return reply.code(404).send({ error: 'Instance not found' });
+  try {
+    const userId = request.user.userId;
+    const instanceId = request.params.id;
+    
+    const result = await db.query(
+      'SELECT * FROM instances WHERE id = $1',
+      [instanceId]
+    );
+    
+    if (result.rows.length === 0) {
+      return reply.code(404).send({ error: 'Instance not found' });
+    }
+    
+    const instance = result.rows[0];
+    
+    // Check ownership
+    if (instance.user_id !== userId) {
+      return reply.code(403).send({ error: 'Access denied' });
+    }
+    
+    return {
+      id: instance.id,
+      dashboardUrl: instance.dashboard_url,
+      status: instance.status,
+      createdAt: instance.created_at,
+      modelProvider: instance.model_provider
+    };
+  } catch (error) {
+    fastify.log.error(error);
+    return reply.code(500).send({ error: error.message });
   }
-  
-  // Check ownership
-  if (instance.userId !== request.user.userId) {
-    return reply.code(403).send({ error: 'Access denied' });
-  }
-  
-  return instance;
 });
 
 // Health check (public)
 fastify.get('/health', async () => {
-  return { status: 'ok', instances: instances.size, users: users.size };
+  try {
+    const usersResult = await db.query('SELECT COUNT(*) as count FROM users');
+    const instancesResult = await db.query('SELECT COUNT(*) as count FROM instances');
+    
+    return { 
+      status: 'ok', 
+      users: parseInt(usersResult.rows[0].count),
+      instances: parseInt(instancesResult.rows[0].count)
+    };
+  } catch (error) {
+    return { status: 'error', message: error.message };
+  }
 });
 
 // Start server
 async function start() {
   try {
+    await initDatabase();
     await fastify.listen({ port: PORT, host: '0.0.0.0' });
     fastify.log.info(`API server running on port ${PORT}`);
   } catch (err) {
