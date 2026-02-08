@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  # Frontend - Next.js web UI
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+      - API_URL=http://api:3001
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # Backend - Fastify API
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=postgresql://openclaw:openclaw@postgres:5432/openclaw
+      - DOCKER_SOCKET=/var/run/docker.sock
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - INSTANCE_BASE_PORT=20000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data/instances:/data/instances
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    privileged: true  # Required for Docker-in-Docker
+
+  # Database - PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=openclaw
+      - POSTGRES_PASSWORD=openclaw
+      - POSTGRES_DB=openclaw
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
